@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model HsCode {
+  hsCode      String   @id @map("hs_code") @db.VarChar(10)
+  description String   @db.Text
+  category    String?  @db.VarChar(100)
+  chapter     String?  @db.VarChar(2)
+  heading     String?  @db.VarChar(4)
+  subheading  String?  @db.VarChar(6)
+  isDutiable  Boolean  @default(false) @map("is_dutiable")
+  dutyRate    Decimal? @map("duty_rate") @db.Decimal(5, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  hsProductMappings HsProductMapping[]
+  hsCaControls      HsCaControl[]
+
+  @@index([category])
+  @@index([isDutiable])
+  @@index([chapter])
+  @@map("hs_codes")
+}
+
+model ProductCode {
+  productCode String   @id @map("product_code") @db.VarChar(20)
+  description String   @db.Text
+  category    String?  @db.VarChar(100)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  hsProductMappings  HsProductMapping[]
+  productCaControls  ProductCaControl[]
+  productPairsAsCode1 ProductPair[]     @relation("ProductCode1")
+  productPairsAsCode2 ProductPair[]     @relation("ProductCode2")
+
+  @@index([category])
+  @@map("product_codes")
+}
+
+model CompetentAuthority {
+  caCode      String   @id @map("ca_code") @db.VarChar(100)
+  caName      String   @map("ca_name") @db.VarChar(200)
+  description String?  @db.Text
+  contactInfo Json?    @map("contact_info")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  hsCaControls      HsCaControl[]
+  productCaControls ProductCaControl[]
+
+  @@map("competent_authorities")
+}
+
+model HsProductMapping {
+  id          Int      @id @default(autoincrement())
+  hsCode      String   @map("hs_code") @db.VarChar(10)
+  productCode String   @map("product_code") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  hsCodeRelation      HsCode      @relation(fields: [hsCode], references: [hsCode], onDelete: Cascade)
+  productCodeRelation ProductCode @relation(fields: [productCode], references: [productCode], onDelete: Cascade)
+
+  @@unique([hsCode, productCode])
+  @@index([hsCode])
+  @@index([productCode])
+  @@map("hs_product_mapping")
+}
+
+model HsCaControl {
+  id           Int      @id @default(autoincrement())
+  hsCode       String   @map("hs_code") @db.VarChar(10)
+  caCode       String   @map("ca_code") @db.VarChar(100)
+  controlType  String?  @map("control_type") @db.VarChar(50)
+  requirements String?  @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  hsCodeRelation HsCode             @relation(fields: [hsCode], references: [hsCode], onDelete: Cascade)
+  caRelation     CompetentAuthority @relation(fields: [caCode], references: [caCode], onDelete: Cascade)
+
+  @@unique([hsCode, caCode])
+  @@index([caCode])
+  @@index([hsCode])
+  @@map("hs_ca_control")
+}
+
+model ProductCaControl {
+  id           Int      @id @default(autoincrement())
+  productCode  String   @map("product_code") @db.VarChar(20)
+  caCode       String   @map("ca_code") @db.VarChar(100)
+  controlType  String?  @map("control_type") @db.VarChar(50)
+  requirements String?  @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  productCodeRelation ProductCode        @relation(fields: [productCode], references: [productCode], onDelete: Cascade)
+  caRelation          CompetentAuthority @relation(fields: [caCode], references: [caCode], onDelete: Cascade)
+
+  @@unique([productCode, caCode])
+  @@index([caCode])
+  @@index([productCode])
+  @@map("product_ca_control")
+}
+
+model ProductPair {
+  id               Int      @id @default(autoincrement())
+  productCode1     String   @map("product_code_1") @db.VarChar(20)
+  productCode2     String   @map("product_code_2") @db.VarChar(20)
+  relationshipType String?  @map("relationship_type") @db.VarChar(50)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  productCode1Relation ProductCode @relation("ProductCode1", fields: [productCode1], references: [productCode], onDelete: Cascade)
+  productCode2Relation ProductCode @relation("ProductCode2", fields: [productCode2], references: [productCode], onDelete: Cascade)
+
+  @@index([productCode1])
+  @@index([productCode2])
+  @@map("product_pairs")
+}
+
+model Category {
+  id               Int       @id @default(autoincrement())
+  categoryName     String    @unique @map("category_name") @db.VarChar(100)
+  parentCategoryId Int?      @map("parent_category_id")
+  description      String?   @db.Text
+  level            Int       @default(1)
+
+  parentCategory Category?  @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id])
+  subcategories  Category[] @relation("CategoryHierarchy")
+
+  @@map("categories")
+}
