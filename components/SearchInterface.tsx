@@ -54,17 +54,24 @@ export default function SearchInterface() {
           return;
         }
         
+        // Deduplicate by creating a Set of existing codes
+        const existingHsCodes = new Set((results.hsCodes || []).map((h: any) => h.hsCode));
+        const existingProductCodes = new Set((results.productCodes || []).map((p: any) => p.productCode));
+        
+        const newHsCodes = (data.hsCodes || []).filter((h: any) => !existingHsCodes.has(h.hsCode));
+        const newProductCodes = (data.productCodes || []).filter((p: any) => !existingProductCodes.has(p.productCode));
+        
         const updatedResults = {
           ...data,
-          hsCodes: [...(results.hsCodes || []), ...(data.hsCodes || [])],
-          productCodes: [...(results.productCodes || []), ...(data.productCodes || [])],
+          hsCodes: [...(results.hsCodes || []), ...newHsCodes],
+          productCodes: [...(results.productCodes || []), ...newProductCodes],
         };
         
         setResults(updatedResults);
         
         const totalLoaded = updatedResults.hsCodes.length + updatedResults.productCodes.length;
         const moreAvailable = totalLoaded < data.total;
-        console.log(`Page ${searchPage}: Loaded ${totalLoaded} of ${data.total}, hasMore=${moreAvailable}`);
+        console.log(`Page ${searchPage}: Loaded ${totalLoaded} of ${data.total}, hasMore=${moreAvailable}, new: ${newHsCodes.length} HS + ${newProductCodes.length} products`);
         setHasMore(moreAvailable);
       } else {
         setResults(data);
