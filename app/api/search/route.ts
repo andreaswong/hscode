@@ -86,6 +86,17 @@ export async function GET(request: NextRequest) {
         ];
       }
       
+      // Filter by chapter through related HS codes
+      if (chapter) {
+        where.hsProductMappings = {
+          some: {
+            hsCodeRelation: {
+              chapter: chapter
+            }
+          }
+        };
+      }
+      
       if (ca) {
         where.productCaControls = {
           some: {
